@@ -139,7 +139,7 @@ void ASterio_4_16Character::MoveRight(float Value)
 	}
 }
 
-static FMatrix MagicFix(FMatrix matrix)
+static FMatrix MagicFix(FMatrix& matrix)
 {
 	FMatrix result(matrix);
 
@@ -171,63 +171,6 @@ static FMatrix FrustumMatrix(float left, float right, float bottom, float top, f
 	Result.M[2][3] = -1.0f;
 	Result.M[3][2] = -(farVal * nearVal) / (farVal - nearVal);
 	Result.M[3][3] = 0;
-
-	return Result;
-}
-
-static FMatrix FrustumMatrix1(float left, float right, float bottom, float top, float nearVal, float farVal)
-{
-	FMatrix Result;
-
-	Result.M[0][0] = 2.f * nearVal / (right - left);
-	Result.M[0][1] = 0.0f;
-	Result.M[0][2] = 0.0f;
-	Result.M[0][3] = 0.0f;
-
-	Result.M[1][0] = 0.0f;
-	Result.M[1][1] = 2.f * nearVal / (top - bottom);
-	Result.M[1][2] = 0.0f;
-	Result.M[1][3] = 0.0f;
-
-	Result.M[2][0] = (right + left) / (right - left);
-	Result.M[2][1] = (top + bottom) / (top - bottom);
-	Result.M[2][2] = -(farVal + nearVal) / (farVal + nearVal);
-	Result.M[2][3] = -1.f;
-
-	Result.M[3][0] = 0.0f;
-	Result.M[3][1] = 0.0f;
-	Result.M[3][2] = -(2 * farVal * nearVal) / (farVal - nearVal);
-	Result.M[3][3] = 0.0f;
-
-	return Result;
-}
-
-static FMatrix TranslateMatrix1(FVector eyePosition)
-{
-	FMatrix Result;
-	Result.SetIdentity();
-
-	FVector EP = -1.f * eyePosition / 25.f;
-
-	Result.M[0][0] = 1.0f;
-	Result.M[0][1] = 0.0f;
-	Result.M[0][2] = 0.0f;
-	Result.M[0][3] = EP.X;
-
-	Result.M[1][0] = 0.0f;
-	Result.M[1][1] = 1.0f;
-	Result.M[1][2] = 0.0f;
-	Result.M[1][3] = EP.Y;
-
-	Result.M[2][0] = 0.0f;
-	Result.M[2][1] = 0.0f;
-	Result.M[2][2] = 1.0f;
-	Result.M[2][3] = EP.Z;
-
-	Result.M[3][0] = 0.0f;
-	Result.M[3][1] = 0.0f;
-	Result.M[3][2] = 0.0f;
-	Result.M[3][3] = 1.0f;
 
 	return Result;
 }
@@ -296,28 +239,6 @@ FMatrix GenerateOffAxisMatrix(float ScreenWidth, float ScreenHeight, FVector eye
 	//return GenerateOffAxisMatrix_Internal(ScreenWidth, ScreenHeight, eyePosition);
 }
 
-FMatrix GenerateOffAxisMatrix1(float ScreenWidth, float ScreenHeight, FVector eyePosition)
-{
-	float headX = eyePosition.X / ScreenHeight;
-	float headY = eyePosition.Y / ScreenHeight;
-	float headDist = eyePosition.Z / ScreenHeight;
-	float screenAspect = ScreenWidth / ScreenHeight;
-
-	float nearPlane = GNearClippingPlane;
-	FMatrix resultM = FrustumMatrix1(nearPlane*(-.5f * screenAspect - headX) / headDist,
-		nearPlane*(.5f * screenAspect - headX) / headDist,
-		nearPlane*(-.5f + headY) / headDist,
-		nearPlane*(.5f + headY) / headDist,
-		nearPlane, 1000.0f);
-
-	FMatrix IdentityM;
-	IdentityM.SetIdentity();
-
-	return MagicFix(resultM * IdentityM * MagicFix(TranslateMatrix1(eyePosition)));
-
-	//return GenerateOffAxisMatrix_Internal(ScreenWidth, ScreenHeight, eyePosition);
-}
-
 static FMatrix _AdjustProjectionMatrixForRHI(const FMatrix& InProjectionMatrix)
 {
 	const float GMinClipZ = 0.0f;
@@ -341,8 +262,8 @@ void ASterio_4_16Character::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FMatrix GenerateOffAxisMatrix_L = GenerateOffAxisMatrix1(160.f, 100.f, FVector(-2.f, 0.f, 161.f));
-	FMatrix GenerateOffAxisMatrix_R = GenerateOffAxisMatrix1(160.f, 100.f, FVector(2.f, 0.f, 159.f));
+	FMatrix GenerateOffAxisMatrix_L = GenerateOffAxisMatrix(160.f, 100.f, FVector(-2.f, 0.f, 161.f));
+	FMatrix GenerateOffAxisMatrix_R = GenerateOffAxisMatrix(160.f, 100.f, FVector(2.f, 0.f, 159.f));
 
 	UE_LOG(LogTemp, Warning, TEXT("GenerateOffAxisMatrix_L %s"), *GenerateOffAxisMatrix_L.ToString());
 	UE_LOG(LogTemp, Warning, TEXT("GenerateOffAxisMatrix_R %s"), *GenerateOffAxisMatrix_R.ToString());
