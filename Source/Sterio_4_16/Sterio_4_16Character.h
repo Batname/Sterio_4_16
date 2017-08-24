@@ -79,5 +79,27 @@ protected:
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+	FVector LeftEye = FVector(0.f, 0.f, 161.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+	FVector RightEye = FVector(0.f, 0.f, 159.f);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+	float width = 160.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+	float height = 100.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+	float NearClipPlane= 0.05f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+    float FarClipPlane= 3500.f;
+
+
+	FMatrix GeneralizedPerspectiveProjection(FVector pe, float near, float far);
+
 };
 

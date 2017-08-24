@@ -38,16 +38,16 @@ ASterio_4_16Character::ASterio_4_16Character()
 	CameraBoom->TargetArmLength = 300.0f; // The camera follows at this distance behind the character	
 	CameraBoom->bUsePawnControlRotation = true; // Rotate the arm based on the controller
 
-	// sterio cam render
-	LeftCam = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("LeftCam"));
-	LeftCam->SetupAttachment(CameraBoom);
-	RightCam = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("RightCam"));
-	RightCam->SetupAttachment(CameraBoom);
-
 	// Create a follow camera
 	FollowCamera = CreateDefaultSubobject<UCameraComponent>(TEXT("FollowCamera"));
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
+
+												   // sterio cam render
+	LeftCam = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("LeftCam"));
+	LeftCam->SetupAttachment(FollowCamera);
+	RightCam = CreateDefaultSubobject<USceneCaptureComponent2D>(TEXT("RightCam"));
+	RightCam->SetupAttachment(FollowCamera);
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
@@ -232,6 +232,126 @@ static FMatrix TranslateMatrix1(FVector eyePosition)
 	return Result;
 }
 
+static FMatrix PerspectiveOffCenter(float left, float right, float bottom, float top, float near, float far)
+{
+	float x = 2.0F * near / (right - left);
+	float y = 2.0F * near / (top - bottom);
+	float a = (right + left) / (right - left);
+	float b = (top + bottom) / (top - bottom);
+	float c = -(far + near) / (far - near);
+	float d = -(2.0F * far * near) / (far - near);
+	float e = -1.0F;
+
+	FMatrix M;
+	M.SetIdentity();
+
+	M.M[0][0] = x;
+	M.M[0][1] = 0;
+	M.M[0][2] = a;
+	M.M[0][3] = 0;
+	M.M[1][0] = 0;
+	M.M[1][1] = y;
+	M.M[1][2] = b;
+	M.M[1][3] = 0;
+	M.M[2][0] = 0;
+	M.M[2][1] = 0;
+	M.M[2][2] = c;
+	M.M[2][3] = d;
+	M.M[3][0] = 0;
+	M.M[3][1] = 0;
+	M.M[3][2] = -e;
+	M.M[3][3] = 0;
+	return M;
+}
+
+FMatrix ASterio_4_16Character::GeneralizedPerspectiveProjection(FVector pe, float near, float far)
+{
+
+	float zoff = 0.0f;// EyeLeft.z/10.0f;
+	FVector pa = FVector(-width / 2.0f, -height / 2.0f, -zoff);
+	FVector pb = FVector(width / 2.0f, -height / 2.0f, -zoff);
+	FVector pc = FVector(-width / 2.0f, height / 2.0f, -zoff);
+
+	pe.Z = -pe.Z;
+
+	FVector va, vb, vc;
+	FVector vr, vu, vn;
+
+	float left, right, bottom, top, eyedistance;
+
+	FMatrix transformMatrix;
+	FMatrix projectionM;
+	FMatrix eyeTranslateM;
+	FMatrix finalProjection;
+	///Calculate the orthonormal for the screen (the screen coordinate system
+	vr = pb - pa;
+	vr.Normalize();
+	vu = pc - pa;
+	vu.Normalize();
+	vn = FVector::CrossProduct(vr, vu);
+	vn.Normalize();
+
+	//Calculate the vector from eye (pe) to screen corners (pa, pb, pc)
+	va = pa - pe;
+	vb = pb - pe;
+	vc = pc - pe;
+
+	//Get the distance;; from the eye to the screen plane
+	eyedistance = -(FVector::DotProduct(va, vn));
+
+	//Get the varaibles for the off center projection
+	left = (FVector::DotProduct(vr, va) * near) / eyedistance;
+	right = (FVector::DotProduct(vr, vb) * near) / eyedistance;
+	bottom = (FVector::DotProduct(vu, va) * near) / eyedistance;
+	top = (FVector::DotProduct(vu, vc) * near) / eyedistance;
+
+	//Get this projection
+	projectionM = PerspectiveOffCenter(left, right, bottom, top, near, far);
+
+	//Fill in the transform matrix
+	transformMatrix.M[0][0] = vr.X;
+	transformMatrix.M[0][1] = vr.Y;
+	transformMatrix.M[0][2] = vr.Z;
+	transformMatrix.M[0][3] = 0.0f;
+	transformMatrix.M[1][0] = vu.X;
+	transformMatrix.M[1][1] = vu.Y;
+	transformMatrix.M[1][2] = vu.Z;
+	transformMatrix.M[1][3] = 0.0f;
+	transformMatrix.M[2][0] = vn.X;
+	transformMatrix.M[2][1] = vn.Y;
+	transformMatrix.M[2][2] = vn.Z;
+	transformMatrix.M[2][3] = 0.0f;
+	transformMatrix.M[3][0] = 0.0f;
+	transformMatrix.M[3][1] = 0.0f;
+	transformMatrix.M[3][2] = 0.0f;
+	transformMatrix.M[3][3] = 1.0f;
+
+	//Now for the eye transform
+	eyeTranslateM.M[0][0] = 1.0f;
+	eyeTranslateM.M[0][1] = 0.0f;
+	eyeTranslateM.M[0][2] = 0.0f;
+	eyeTranslateM.M[0][3] = -pe.X;
+	eyeTranslateM.M[1][0] = 0.0f;
+	eyeTranslateM.M[1][1] = 1.0f;
+	eyeTranslateM.M[1][2] = 0.0f;
+	eyeTranslateM.M[1][3] = -pe.Y;
+	eyeTranslateM.M[2][0] = 0.0f;
+	eyeTranslateM.M[2][1] = 0.0f;
+	eyeTranslateM.M[2][2] = 1.0f;
+	eyeTranslateM.M[2][3] = -pe.Z;
+	eyeTranslateM.M[3][0] = 0.0f;
+	eyeTranslateM.M[3][1] = 0.0f;
+	eyeTranslateM.M[3][2] = 0.0f;
+	eyeTranslateM.M[3][3] = 1.0f;
+
+
+	//Multiply all together
+	finalProjection = projectionM * transformMatrix;//eyeTranslateM;
+
+	return finalProjection;
+}
+
+
 static FMatrix GenerateOffAxisMatrix_Internal(float ScreenWidth, float ScreenHeight, const FVector& wcsPtHead)
 {
 	float heightFromWidth = ScreenHeight / ScreenWidth;
@@ -267,8 +387,8 @@ static FMatrix GenerateOffAxisMatrix_Internal(float ScreenWidth, float ScreenHei
 		matFlipZ;
 
 
-	//result.M[2][2] = 0.0f;
-	//result.M[3][0] = 0.0f;
+	result.M[2][2] = 0.0f;
+	result.M[3][0] = 0.0f;
 	result.M[3][1] = 0.0f;
 
 	result *= 1.0f / result.M[0][0];
@@ -313,7 +433,7 @@ FMatrix GenerateOffAxisMatrix1(float ScreenWidth, float ScreenHeight, FVector ey
 	FMatrix IdentityM;
 	IdentityM.SetIdentity();
 
-	return MagicFix(resultM * IdentityM * MagicFix(TranslateMatrix1(eyePosition)));
+	return MagicFix(resultM);
 
 	//return GenerateOffAxisMatrix_Internal(ScreenWidth, ScreenHeight, eyePosition);
 }
@@ -333,7 +453,6 @@ void ASterio_4_16Character::BeginPlay()
 	Super::BeginPlay();
 	LeftCam->bUseCustomProjectionMatrix = true;
 	RightCam->bUseCustomProjectionMatrix = true;
-
 }
 
 
@@ -341,15 +460,17 @@ void ASterio_4_16Character::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	FMatrix GenerateOffAxisMatrix_L = GenerateOffAxisMatrix1(160.f, 100.f, FVector(-2.f, 0.f, 161.f));
-	FMatrix GenerateOffAxisMatrix_R = GenerateOffAxisMatrix1(160.f, 100.f, FVector(2.f, 0.f, 159.f));
+	FMatrix GenerateOffAxisMatrix_L = GenerateOffAxisMatrix1(width, height, LeftEye);
+	FMatrix GenerateOffAxisMatrix_R = GenerateOffAxisMatrix1(width, height, RightEye);
 
-	UE_LOG(LogTemp, Warning, TEXT("GenerateOffAxisMatrix_L %s"), *GenerateOffAxisMatrix_L.ToString());
-	UE_LOG(LogTemp, Warning, TEXT("GenerateOffAxisMatrix_R %s"), *GenerateOffAxisMatrix_R.ToString());
 
-	UE_LOG(LogTemp, Warning, TEXT("MagicFix_R %s"), *MagicFix(GenerateOffAxisMatrix_L).ToString());
-	UE_LOG(LogTemp, Warning, TEXT("MagicFix_R %s"), *MagicFix(GenerateOffAxisMatrix_R).ToString());
 
-	LeftCam->CustomProjectionMatrix = GenerateOffAxisMatrix_L;
-	RightCam->CustomProjectionMatrix = GenerateOffAxisMatrix_R;
+	LeftCam->CustomProjectionMatrix = MagicFix(GenerateOffAxisMatrix_L);
+	RightCam->CustomProjectionMatrix = MagicFix(GenerateOffAxisMatrix_R);
+
+	UE_LOG(LogTemp, Warning, TEXT("MagicFix_R 1 %s"), *LeftCam->CustomProjectionMatrix.ToString());
+	UE_LOG(LogTemp, Warning, TEXT("MagicFix_R 2 %s"), *RightCam->CustomProjectionMatrix.ToString());
+
+	LeftCam->SetRelativeLocation(FVector(-LeftEye.Z, LeftEye.X, LeftEye.Y));
+	RightCam->SetRelativeLocation(FVector(-RightEye.Z, RightEye.X, RightEye.Y));
 }
