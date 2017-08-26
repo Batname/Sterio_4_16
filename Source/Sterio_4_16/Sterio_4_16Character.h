@@ -81,10 +81,10 @@ protected:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
-	FVector LeftEye = FVector(0.f, 0.f, 161.f);
+	FVector LeftEye = FVector(2.f, 1.f, 161.f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
-	FVector RightEye = FVector(0.f, 0.f, 159.f);
+	FVector RightEye = FVector(-2.f, 1.f, 159.f);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
 	float width = 160.f;
@@ -93,13 +93,62 @@ protected:
 	float height = 100.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
-	float NearClipPlane= 0.05f;
+	float NearClipPlane= 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
-    float FarClipPlane= 3500.f;
+    float FarClipPlane= 600000.f;
 
 
-	FMatrix GeneralizedPerspectiveProjection(FVector pe, float near, float far);
+	FMatrix GeneralizedPerspectiveProjection(FVector pe);
 
+	FMatrix TransformToUEProjection(FMatrix M);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+	float M_0_0 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_0_1 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_0_2 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_0_3 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_1_0 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_1_1 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_1_2 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_1_3 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_2_0 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_2_1 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_2_2 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_2_3 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_3_0 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_3_1 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_3_2 = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
+		float M_3_3 = 0.0f;
 };
 
