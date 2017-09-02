@@ -100,11 +100,11 @@ protected:
 
 
 	FMatrix GeneralizedPerspectiveProjection(FVector pe);
+	FMatrix GeneralizedPerspectiveProjection1(FVector pe);
 
-	FMatrix TransformToUEProjection(FMatrix M);
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
-	float M_0_0 = 0.0f;
+	float M_0_0 = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
 		float M_0_1 = 0.0f;
@@ -119,7 +119,7 @@ protected:
 		float M_1_0 = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
-		float M_1_1 = 0.0f;
+		float M_1_1 = 1.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = SterioCam)
 		float M_1_2 = 0.0f;
